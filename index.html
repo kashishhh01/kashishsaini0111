@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CityCompass-Locating Local Transport in a New City</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center min-h-screen">
+    <header class="w-full bg-white shadow-md py-4 px-6 flex justify-between items-center">
+        <h1 class="text-xl font-semibold text-gray-800">CityCompass</h1>
+    </header>
+
+    <div class="content w-full max-w-2xl mt-12 p-6 text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Find Your Way</h1>
+        <p class="text-lg text-gray-600 mb-8">Plan a journey on our web app</p>
+
+        <div class="form-container bg-blue-500 rounded-lg p-6 w-full">
+            <h2 class="text-2xl font-semibold text-white mb-4">Get Me Somewhere</h2>
+            <input type="text" id="start-location" placeholder="Start" class="w-full p-4 mb-4 rounded-md text-lg">
+            <input type="text" id="end-location" placeholder="End" class="w-full p-4 mb-4 rounded-md text-lg">
+            <button id="go-button" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-md text-lg transition duration-300 ease-in-out">GO</button>
+            <button id="switch-city-button" class="bg-transparent border border-white text-white py-2 px-4 rounded-md mt-4 text-md hover:bg-blue-600 transition duration-300 ease-in-out">Switch City</button>
+        </div>
+
+        <div id="results-container" class="mt-8 bg-white rounded-lg shadow-md p-6 w-full hidden">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Route Details</h3>
+            <div id="route-info" class="mb-4 text-gray-700"></div>
+            <ol id="route-steps" class="list-decimal list-inside space-y-2 text-gray-600"></ol>
+             <div id="error-message" class="mt-4 text-red-500 font-semibold"></div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const goButton = document.getElementById('go-button');
+            const resultsContainer = document.getElementById('results-container');
+            const routeInfo = document.getElementById('route-info');
+            const routeSteps = document.getElementById('route-steps');
+            const errorMessage = document.getElementById('error-message');
+    
+            goButton.addEventListener('click', async () => {
+                const startLocation = document.getElementById('start-location').value;
+                const endLocation = document.getElementById('end-location').value;
+    
+                if (!startLocation.trim() || !endLocation.trim()) {
+                    errorMessage.textContent = 'Please enter both start and end locations.';
+                    resultsContainer.classList.add('hidden');
+                    return;
+                }
+    
+                errorMessage.textContent = ''; // Clear any previous error messages
+    
+                try {
+                    const response = await fetch('/get_route_details', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ start: startLocation, end: endLocation }),
+                    });
+    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        if (response.status === 404) {
+                            errorMessage.textContent = errorData.message || 'No route found.';
+                        } else {
+                            errorMessage.textContent = `Error: ${errorData.error || 'Something went wrong'}`;
+                        }
+                        resultsContainer.classList.add('hidden');
+                        return;
+                    }
+    
+                    const data = await response.json();
+    
+                    if (data) {
+                        routeInfo.textContent = `Distance: ${data.DistanceKM} KM`;
+                        routeSteps.innerHTML = `
+                            <li><strong>Rapido:</strong> Bike - ₹${data.RapidoBikeFare || 'N/A'} (${data.RapidoBikeTime || 'N/A'} mins), Auto - ₹${data.RapidoAutoFare || 'N/A'} (${data.RapidoAutoTime || 'N/A'} mins), Cab - ₹${data.RapidoCabFare || 'N/A'} (${data.RapidoCabTime || 'N/A'} mins)</li>
+                            <li><strong>Uber:</strong> Bike - ₹${data.UberBikeFare || 'N/A'} (${data.UberBikeTime || 'N/A'} mins), Auto - ₹${data.UberAutoFare || 'N/A'} (${data.UberAutoTime || 'N/A'} mins), Cab - ₹${data.UberCabFare || 'N/A'} (${data.UberCabTime || 'N/A'} mins)</li>
+                        `;
+                        resultsContainer.classList.remove('hidden');
+                    } else {
+                        errorMessage.textContent = 'No route details found.';
+                        resultsContainer.classList.add('hidden');
+                    }
+    
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    errorMessage.textContent = 'Failed to connect to the server.';
+                    resultsContainer.classList.add('hidden');
+                }
+            });
+    
+            const switchCityButton = document.getElementById('switch-city-button');
+            switchCityButton.addEventListener('click', () => {
+                alert('Switch City functionality will be implemented later.');
+                // In a real application, you would likely redirect to a page or show a modal for city selection.
+            });
+        });
+    </script>
+
+</body>
+</html>
+
